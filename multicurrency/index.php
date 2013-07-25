@@ -3,7 +3,7 @@
 Plugin Name: Multi currency
 Plugin URI: http://www.osclass.org/
 Description: Display the price of an ad in several currencies
-Version: 1.3.0
+Version: 1.3.1
 Author: OSClass
 Author URI: http://www.osclass.org/
 Short Name: multicurrency
@@ -52,14 +52,20 @@ Plugin update URI: multicurrency
         }
     }
     
-    function multicurrency_add_prices() {
+    function multicurrency_add_prices($formatted_price) {
         if(osc_item_price()!=NULL && osc_item_price()!='' && osc_item_price()!=0) {
             $rates = ModelMC::newInstance()->getRates(osc_item_currency());
             $data = array();
             foreach($rates as $r) {
-                $data[] = osc_format_price(osc_item_price()*$r['f_rate'], $r['s_to']);
+                $price = (osc_item_price()/1000000)*$r['f_rate'];
+                $symbol = $r['s_to'];
+
+                $currencyFormat = osc_locale_currency_format();
+                $currencyFormat = str_replace('{NUMBER}', number_format($price, osc_locale_num_dec(), osc_locale_dec_point(), osc_locale_thousands_sep()), $currencyFormat);
+                $currencyFormat = str_replace('{CURRENCY}', $symbol, $currencyFormat);
+                $data[] = $currencyFormat;
             }
-            echo '<a class=MCtooltip href="#">'.__('Other currencies', 'multicurrency').'<span>'.implode("<br />", $data).'</span></a>';
+            return $formatted_price.' <a class=MCtooltip href="#">'.__('Other currencies', 'multicurrency').'<span>'.implode("<br />", $data).'</span></a>';
         }
     }
     
@@ -99,5 +105,6 @@ Plugin update URI: multicurrency
 
     osc_add_hook('cron_hourly', 'multicurrency_get_data');
     osc_add_hook('header', 'multicurrency_header');
+    osc_add_filter('item_price', 'multicurrency_add_prices');
     
 ?>
